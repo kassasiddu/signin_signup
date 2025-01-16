@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Excel Data Management</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.1/xlsx.full.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: #f1f1f1;
+    }
+
+    .container {
+      text-align: center;
+      width: 80%;
+      max-width: 600px;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+    }
+
+    button {
+      padding: 10px 20px;
+      margin: 10px;
+      cursor: pointer;
+    }
+
+    .login-section {
+      display: none;
+    }
+
+    #user-dashboard,
+    #lead-dashboard {
+      display: none;
+    }
+
+    table {
+      width: 80%;
+      margin: 20px auto;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px 12px;
+      text-align: left;
+    }
+
+    th {
+      background-color: #f4f4f4;
+    }
+
+    input[type="text"], input[type="password"] {
+      padding: 8px;
+      margin: 10px;
+      width: 200px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>Welcome to Excel Data Management</h1>
+    
+    <!-- Role Selection -->
+    <div id="role-selection">
+      <button id="user-btn">Are you a User?</button>
+      <button id="lead-btn">Are you a Lead?</button>
+    </div>
+
+    <!-- User Login Section -->
+    <div id="user-login" class="login-section">
+      <h2>User Login</h2>
+      <input type="text" id="username" placeholder="Username" />
+      <input type="password" id="password" placeholder="Password" />
+      <button id="login-btn">Login</button>
+      <button id="register-btn">Register</button>
+      <p id="login-error"></p>
+    </div>
+
+    <!-- Lead Login Section -->
+    <div id="lead-login" class="login-section">
+      <h2>Lead Login</h2>
+      <input type="password" id="lead-password" placeholder="Enter Lead Password" />
+      <button id="lead-login-btn">Login as Lead</button>
+      <p id="lead-error"></p>
+    </div>
+
+    <!-- User Dashboard -->
+    <div id="user-dashboard" class="dashboard">
+      <h2>Welcome, <span id="user-name"></span></h2>
+      <table id="user-table">
+        <thead>
+          <tr>
+            <th>Course</th>
+            <th>Completed</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- User data will be filled here -->
+        </tbody>
+      </table>
+      <button id="logout-btn">Logout</button>
+    </div>
+
+    <!-- Lead Dashboard -->
+    <div id="lead-dashboard" class="dashboard">
+      <h2>Lead Dashboard</h2>
+      <button id="load-excel">Load Excel File</button>
+      <table id="lead-table">
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Course</th>
+            <th>Completed</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Lead data will be filled here -->
+        </tbody>
+      </table>
+      <button id="lead-logout-btn">Logout</button>
+    </div>
+  </div>
+
+  <script>
+    // Variables
+    const userBtn = document.getElementById('user-btn');
+    const leadBtn = document.getElementById('lead-btn');
+    const userLogin = document.getElementById('user-login');
+    const leadLogin = document.getElementById('lead-login');
+    const userDashboard = document.getElementById('user-dashboard');
+    const leadDashboard = document.getElementById('lead-dashboard');
+    const usernameInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
+    const leadPasswordInput = document.getElementById('lead-password');
+    const loginBtn = document.getElementById('login-btn');
+    const registerBtn = document.getElementById('register-btn');
+    const leadLoginBtn = document.getElementById('lead-login-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+    const leadLogoutBtn = document.getElementById('lead-logout-btn');
+    const userNameDisplay = document.getElementById('user-name');
+    const userTable = document.getElementById('user-table').getElementsByTagName('tbody')[0];
+    const leadTable = document.getElementById('lead-table').getElementsByTagName('tbody')[0];
+    const loadExcelBtn = document.getElementById('load-excel');
+    const loginError = document.getElementById('login-error');
+    const leadError = document.getElementById('lead-error');
+
+    // Sample user data for demo
+    const users = [
+      { username: 'Shiva Raj', password: '1234', courses: [{ name: 'Math', completed: false }, { name: 'Science', completed: false }] },
+      { username: 'jane', password: 'abcd', courses: [{ name: 'Math', completed: false }, { name: 'History', completed: false }] }
+    ];
+
+    let currentUser = null;
+
+    // Role Selection
+    userBtn.addEventListener('click', () => {
+      document.getElementById('role-selection').style.display = 'none';
+      userLogin.style.display = 'block';
+    });
+
+    leadBtn.addEventListener('click', () => {
+      document.getElementById('role-selection').style.display = 'none';
+      leadLogin.style.display = 'block';
+    });
+
+    // User Login
+    loginBtn.addEventListener('click', () => {
+      const username = usernameInput.value;
+      const password = passwordInput.value;
+      
+      const user = users.find(u => u.username === username && u.password === password);
+      if (user) {
+        currentUser = user;
+        loginError.textContent = '';
+        userNameDisplay.textContent = user.username;
+        userDashboard.style.display = 'block';
+        loadUserTable(user);
+        userLogin.style.display = 'none';
+      } else {
+        loginError.textContent = 'Invalid username or password.';
+      }
+    });
+
+    // Register New User (simple)
+    registerBtn.addEventListener('click', () => {
+      const username = usernameInput.value;
+      const password = passwordInput.value;
+
+      if (!users.some(u => u.username === username)) {
+        users.push({ username, password, courses: [] });
+        loginError.textContent = 'Registration successful! Please login.';
+      } else {
+        loginError.textContent = 'Username already exists.';
+      }
+    });
+
+    // User Dashboard actions (ticking completed courses)
+    function loadUserTable(user) {
+      userTable.innerHTML = ''; // Clear previous table data
+
+      user.courses.forEach(course => {
+        const row = userTable.insertRow();
+        row.insertCell(0).textContent = course.name;
+        const cell = row.insertCell(1);
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = course.completed;
+        checkbox.disabled = true; // User cannot modify
+        checkbox.addEventListener('click', () => {
+          course.completed = !course.completed;
+        });
+        cell.appendChild(checkbox);
+      });
+    }
+
+    // Logout
+    logoutBtn.addEventListener('click', () => {
+      currentUser = null;
+      userDashboard.style.display = 'none';
+      document.getElementById('role-selection').style.display = 'block';
+    });
+
+    // Lead Login
+    leadLoginBtn.addEventListener('click', () => {
+      const leadPassword = leadPasswordInput.value;
+      
+      if (leadPassword === 'lead123') {
+        leadError.textContent = '';
+        leadDashboard.style.display = 'block';
+        leadLogin.style.display = 'none';
+      } else {
+        leadError.textContent = 'Invalid Lead password.';
+      }
+    });
+
+    // Lead Logout
+    leadLogoutBtn.addEventListener('click', () => {
+      leadDashboard.style.display = 'none';
+      document.getElementById('role-selection').style.display = 'block';
+    });
+
+    // Load Excel (for Lead)
+    loadExcelBtn.addEventListener('click', () => {
+      // Example: Loading an Excel file
+      const fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      fileInput.accept = '.xlsx';
+      
+      fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        
+        reader.onload = function (event) {
+          const data = new Uint8Array(event.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          
+          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          const jsonData = XLSX.utils.sheet_to_json(worksheet);
+          
+          // Display Excel Data in Lead Dashboard
+          leadTable.innerHTML = '';
+          jsonData.forEach(row => {
+            const tableRow = leadTable.insertRow();
+            tableRow.insertCell(0).textContent = row.User;
+            tableRow.insertCell(1).textContent = row.Course;
+            const cell = tableRow.insertCell(2);
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.checked = row.Completed;
+            checkbox.addEventListener('click', () => {
+              row.Completed = !row.Completed;
+            });
+            cell.appendChild(checkbox);
+          });
+        };
+        
+        reader.readAsArrayBuffer(file);
+      });
+      
+      fileInput.click();
+    });
+  </script>
+
+</body>
+</html>
